@@ -42,3 +42,38 @@ func snippetCreate(w http.ResponseWriter, r *http.Request){
 	}
 	w.Write([]byte("Create a new snippet..."))
 }
+
+func (app *application) snippetView(w http.ResponseWriter, r *http.Request){
+	id,err := strconv.Atoi(r.URL.Query().Get("id"))
+	if err != nil || id < 1 {
+		app.notFound(w)
+		return
+	}
+	snippet, err := app.snippets.Get(id)
+	if err != nil {
+		if errors.Is(err, models.ErrNoRecord){
+			app.notFound(w)
+		} else {
+			app.serverError(w,err)
+		}
+		return 
+	}
+	files := []string{
+		"./ui/html/base.tmpl",
+		"./ui/html/partials/nav.tmpl",
+		"./ui/html/pages/view.tmpl",
+	}
+	ts,err := template.ParseFiles(files...)
+	if err != nil {
+		app.serverError(w,err)
+		return
+	}
+
+	data := &templateData{
+		Snippet: snippet,
+	} 
+	err = ts.ExecuteTemplate(w, "base", snippet)
+	if err != nil {
+		app.serverError(w,err)
+	}
+}
